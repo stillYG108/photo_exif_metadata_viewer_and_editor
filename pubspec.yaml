@@ -33,7 +33,7 @@ dependencies:
 
   # Firebase
   firebase_core: ^3.15.2
-  firebase_auth: ^5.3.1
+  firebase_auth: ^5.7.0
   cloud_firestore: ^5.6.12
   firebase_storage: ^12.3.4
   google_sign_in: ^6.1.5
@@ -110,6 +110,8 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/images/logo.png
+    - assets/logo.png
+    - assets/mixkit-sci-fi-click-900.wav
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

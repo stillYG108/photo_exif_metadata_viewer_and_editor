@@ -10,12 +10,17 @@ class GitHubAuthService {
   /// Throws exception on failure
   Future<UserCredential> signInWithGitHub() async {
     try {
+      print('DEBUG: GitHubAuthService: Starting GitHub Sign-In...');
       // Create a GitHub provider
       final GithubAuthProvider githubProvider = GithubAuthProvider();
       
       // Sign in with GitHub
-      return await _auth.signInWithProvider(githubProvider);
+      print('DEBUG: GitHubAuthService: Calling signInWithProvider...');
+      final result = await _auth.signInWithProvider(githubProvider);
+      print('DEBUG: GitHubAuthService: Sign-In successful. User: ${result.user?.uid}');
+      return result;
     } catch (e) {
+      print('DEBUG: GitHubAuthService: Sign-In failed. Error: $e');
       throw Exception('Failed to sign in with GitHub: $e');
     }
   }

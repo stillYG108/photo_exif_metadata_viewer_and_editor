@@ -8,6 +8,9 @@ import '../widgets/forensic_card.dart';
 import '../widgets/animated_text.dart';
 import '../services/google_auth_service.dart';
 import '../services/github_auth_service.dart';
+import '../services/github_auth_service.dart';
+import '../services/sound_service.dart';
+import '../widgets/animated_app_logo.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,10 +33,16 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _successMessage;
 
   @override
-  void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize sound service
+    SoundService().init();
   }
 
   Future<void> _handleLogin() async {
@@ -229,22 +238,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Logo / ASCII Header
-                  Text(
-                    "EXIF.FORENSICS",
-                    style: GoogleFonts.orbitron(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4.0,
-                      color: ForensicColors.greenPrimary,
-                    ),
-                  ),
-                   Text(
-                    "SECURE WORKSTATION LOGIN",
-                    style: GoogleFonts.shareTechMono(
-                      color: ForensicColors.textDim,
-                      letterSpacing: 2.0,
-                    ),
-                  ),
+                  // Animated Logo
+                  const AnimatedAppLogo(size: 180),
+                  
+                  const SizedBox(height: 32),
                   const SizedBox(height: 48),
 
                   ForensicCard(
@@ -304,7 +301,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         else
                           ElevatedButton(
-                            onPressed: _handleLogin,
+                            onPressed: () {
+                              SoundService().playClickSound();
+                              _handleLogin();
+                            },
                             child: const Text("INITIATE_SESSION"),
                           ),
                         
@@ -339,7 +339,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         else
                           OutlinedButton.icon(
-                            onPressed: _handleGoogleSignIn,
+                            onPressed: () {
+                              SoundService().playClickSound();
+                              _handleGoogleSignIn();
+                            },
                             icon: Icon(Icons.g_mobiledata, size: 28, color: ForensicColors.neonGreen),
                             label: Text(
                               "Google",
@@ -366,7 +369,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         else
                           OutlinedButton.icon(
-                            onPressed: _handleGitHubSignIn,
+                            onPressed: () {
+                              SoundService().playClickSound();
+                              _handleGitHubSignIn();
+                            },
                             icon: Icon(Icons.code, size: 24, color: ForensicColors.textPrimary),
                             label: Text(
                               "GitHub",
@@ -389,6 +395,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   TextButton(
                     onPressed: () {
+                      SoundService().playClickSound();
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const RegisterScreen()),
