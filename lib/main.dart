@@ -1,12 +1,17 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import 'core/theme/forensic_theme.dart';
 import 'screens/main_shell_screen.dart';
 import 'screens/public_dashboard_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'widgets/glitch_text.dart';
+import 'widgets/scanning_effect.dart';
 
+/// Test Firestore connection
 Future<void> testFirestore() async {
   await FirebaseFirestore.instance
       .collection('system')
@@ -17,69 +22,42 @@ Future<void> testFirestore() async {
   });
 }
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
   await Firebase.initializeApp();
-  runApp(const RetroForensicsApp());
+  
+  // Enable Firestore offline persistence
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+  
+  // Wrap app with ProviderScope for Riverpod
+  runApp(const ProviderScope(child: ExifForensicsApp()));
 }
 
-
-class RetroForensicsApp extends StatelessWidget {
-  const RetroForensicsApp({super.key});
+/// Main Application Widget
+class ExifForensicsApp extends StatelessWidget {
+  const ExifForensicsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EXIF Forensics Workbench',
-      theme: ThemeData(
-        useMaterial3: false,
-        scaffoldBackgroundColor: const Color(0xFFBBD7EC),
-        fontFamily: 'monospace',
-
-        // 🪟 90s Dialog Theme
-        dialogTheme: const DialogThemeData(
-          backgroundColor: Color(0xFFFFF7CC),
-          shape: RoundedRectangleBorder(
-            side: BorderSide(color: Colors.black, width: 2),
-          ),
-          titleTextStyle: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-          contentTextStyle: TextStyle(
-            fontSize: 12,
-            color: Colors.black,
-          ),
-        ),
-
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.black,
-            backgroundColor: const Color(0xFFEFEFEF),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            side: const BorderSide(color: Colors.black, width: 2),
-            shape: const BeveledRectangleBorder(),
-            textStyle: const TextStyle(fontSize: 12),
-          ),
-        ),
-
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(
-            fontSize: 12,
-            color: Colors.black,
-          ),
-        ),
-      ),
-
+      
+      // Use Forensic Theme (Green Terminal)
+      theme: ForensicTheme.getTheme(),
+      
       home: const AuthGate(),
     );
   }
 }
 
-/// 🔐 AUTH GATE — SINGLE SOURCE OF TRUTH
+/// Authentication Gate - Routes to appropriate screen based on auth state
+/// Includes "Biometric Scan" loading effect.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -88,18 +66,70 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const _BiometricLoadingScreen();
         }
 
+        // Authenticated - go to main shell
         if (snapshot.hasData) {
           return const MainShellScreen();
         }
 
+        // Not authenticated - go to public dashboard
         return const PublicDashboardScreen();
       },
+    );
+  }
+}
+
+class _BiometricLoadingScreen extends StatelessWidget {
+  const _BiometricLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ForensicColors.background,
+      body: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.fingerprint, 
+                  size: 80, 
+                  color: ForensicColors.neonGreen
+                ),
+                const SizedBox(height: 20),
+                GlitchText(
+                  "IDENTITY VERIFICATION IN PROGRESS...",
+                  style: GoogleFonts.shareTechMono(
+                    color: ForensicColors.neonGreen,
+                    fontSize: 16,
+                    letterSpacing: 2.0
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "ACCESSING SECURE DATA ENCLAVE",
+                  style: GoogleFonts.shareTechMono(
+                    color: ForensicColors.textSecondary,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Scan effect over the whole screen
+          const Positioned.fill(
+             child: ScanningEffect(
+               isScanning: true,
+               child: SizedBox.expand(),
+             ),
+          ),
+        ],
+      ),
     );
   }
 }

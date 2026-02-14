@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "955736987395",
+    "project_id": "exif-forensics-app",
+    "storage_bucket": "exif-forensics-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:955736987395:android:31373e3657f096e88bbb36",
+        "android_client_info": {
+          "package_name": "com.example.exif"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "955736987395-3r0kiid6ldhg5h4utqs7v7vcfkjov1ll.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.exif",
+            "certificate_hash": "16058ac95d4b936dbc6eafb2e27d0942ea1f52bf"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDw4TAv7ojioZ4CLndqtLXnbzeIws6541g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,148 +1,179 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../core/theme/forensic_theme.dart';
+import '../widgets/tactical_scaffold.dart';
+import '../widgets/corner_bracket_container.dart';
+import '../widgets/glitch_text.dart';
 import 'login_screen.dart';
-import '../widgets/retro_window_chrome.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-Future<void> testFirestore() async {
-  await FirebaseFirestore.instance
-      .collection('system')
-      .doc('health')
-      .set({'status': 'ok'});
-}
-
 
 class PublicDashboardScreen extends StatelessWidget {
   const PublicDashboardScreen({super.key});
 
-  // ───────── LOGIN REQUIRED POPUP ─────────
-  void _showLoginPrompt(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFFFFF7CC),
-        shape: const RoundedRectangleBorder(
-          side: BorderSide(color: Colors.black, width: 2),
-        ),
-        title: const Text(
-          "LOGIN REQUIRED",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          "Please login to access forensic services.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LoginScreen(),
-                ),
-              );
-            },
-            child: const Text("LOGIN"),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFBBD7EC),
-
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Container(
-            width: 420,
-            height: MediaQuery.of(context).size.height * 0.95,
+    return TacticalScaffold(
+      body: Column(
+        children: [
+          // ───────── HEADER ─────────
+          Container(
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF7CC),
-              border: Border.all(color: Colors.black, width: 2),
+              border: Border(
+                bottom: BorderSide(color: ForensicColors.neonGreen.withOpacity(0.5), width: 1),
+              ),
+              color: Colors.black.withOpacity(0.6),
             ),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // ───────── HEADER ─────────
-                _retroHeader(),
-
-                // ───────── BODY ─────────
                 Expanded(
-                  child: GridView.count(
-                    padding: const EdgeInsets.all(12),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _toolTile("EXIF Analyzer", context),
-                      _toolTile("Metadata Editor", context),
-                      _toolTile("Forensic PDF Report", context),
-                      _toolTile("Evidence Export Tool", context),
+                      GlitchText(
+                        "PUBLIC_ACCESS_TERMINAL_V2",
+                        style: GoogleFonts.orbitron(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: ForensicColors.neonGreen,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "UNSECURED_CONNECTION :: MONITORING_ACTIVE",
+                        style: GoogleFonts.shareTechMono(
+                          fontSize: 12,
+                          color: ForensicColors.alertRed,
+                          letterSpacing: 1.0,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
+                Icon(Icons.public_off, color: ForensicColors.alertRed, size: 32),
+              ],
+            ),
+          ),
 
-                // ───────── FOOTER ─────────
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    "Login required to access services",
-                    style: TextStyle(fontSize: 11),
+          // ───────── BODY ─────────
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: GridView.count(
+                crossAxisCount: 2, 
+                crossAxisSpacing: 24,
+                mainAxisSpacing: 24,
+                childAspectRatio: 1.2,
+                children: [
+                  _buildRestrictedTile(context, "EXIF ANALYZER", Icons.saved_search),
+                  _buildRestrictedTile(context, "METADATA EDITOR", Icons.edit_note),
+                  _buildRestrictedTile(context, "FORENSIC REPORT", Icons.article),
+                  _buildRestrictedTile(context, "EVIDENCE EXPORT", Icons.drive_file_move),
+                  _buildRestrictedTile(context, "DEEP SCAN", Icons.radar),
+                  _buildRestrictedTile(context, "SYSTEM LOGS", Icons.terminal),
+                ],
+              ),
+            ),
+          ),
+
+          // ───────── FOOTER ─────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: ForensicColors.panelBackground,
+              border: Border(top: BorderSide(color: ForensicColors.borderDim))
+            ),
+            child: Column(
+              children: [
+                Text(
+                  "// AUTHENTICATION REQUIRED FOR ACCESS //",
+                  style: GoogleFonts.shareTechMono(
+                    color: ForensicColors.neonGreen,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.lock_open, size: 18),
+                        const SizedBox(width: 12),
+                        Text(
+                          "> INITIATE_LOGIN_SEQUENCE",
+                          style: GoogleFonts.shareTechMono(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2.0,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  // ───────── TOOL TILE ─────────
-  Widget _toolTile(String title, BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showLoginPrompt(context),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFFFC857),
-          border: Border(
-            top: BorderSide(color: Colors.white, width: 4),
-            left: BorderSide(color: Colors.white, width: 4),
-            right: BorderSide(color: Colors.black54, width: 4),
-            bottom: BorderSide(color: Colors.black54, width: 4),
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ───────── RETRO HEADER ─────────
-  Widget _retroHeader() {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      color: const Color(0xFF6AC36A),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            "EXIF FORENSICS TOOLKIT",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          RetroWindowButtons(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRestrictedTile(BuildContext context, String title, IconData icon) {
+    return CornerBracketContainer(
+      color: ForensicColors.textSecondary.withOpacity(0.3),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 40, color: ForensicColors.textSecondary),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.shareTechMono(
+                  color: ForensicColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(color: ForensicColors.textSecondary.withOpacity(0.5)),
+                  color: Colors.black,
+                ),
+                child: Text(
+                  "LOCKED",
+                  style: GoogleFonts.shareTechMono(
+                    fontSize: 10,
+                    color: ForensicColors.textSecondary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
