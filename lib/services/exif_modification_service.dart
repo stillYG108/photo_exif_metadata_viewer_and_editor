@@ -2,12 +2,13 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:native_exif/native_exif.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-/// Service for modifying EXIF data and downloading images
+/// Service for downloading images (EXIF modification requires external tools)
 class ExifModificationService {
-  /// Modify EXIF data and download image with new metadata
+  /// Download image with metadata information
+  /// Note: Full EXIF writing requires platform-specific tools
+  /// For now, this downloads the original image with metadata info in filename
   Future<bool> modifyAndDownloadImage({
     required String imageUrl,
     required String originalFilename,
@@ -18,19 +19,13 @@ class ExifModificationService {
       print('Downloading image from: $imageUrl');
       final imageBytes = await _downloadImage(imageUrl);
       
-      // Step 2: Save to temporary file
-      final tempFile = await _saveToTempFile(imageBytes, originalFilename);
-      
-      // Step 3: Modify EXIF data
-      print('Modifying EXIF data...');
-      await _modifyExifData(tempFile, modifiedMetadata);
-      
-      // Step 4: Save to downloads folder
+      // Step 2: Save to downloads folder with metadata info
       print('Saving to downloads...');
-      final success = await _saveToDownloads(tempFile, originalFilename);
-      
-      // Step 5: Clean up temp file
-      await tempFile.delete();
+      final success = await _saveToDownloads(
+        imageBytes,
+        originalFilename,
+        modifiedMetadata,
+      );
       
       return success;
     } catch (e) {
@@ -49,110 +44,23 @@ class ExifModificationService {
     }
   }
 
-  /// Save bytes to temporary file
-  Future<File> _saveToTempFile(Uint8List bytes, String filename) async {
-    final tempDir = await getTemporaryDirectory();
-    final tempFile = File('${tempDir.path}/$filename');
-    await tempFile.writeAsBytes(bytes);
-    return tempFile;
-  }
-
-  /// Modify EXIF data using native_exif package
-  Future<void> _modifyExifData(File imageFile, Map<String, String> metadata) async {
-    final exif = await Exif.fromPath(imageFile.path);
-    
-    try {
-      // Apply each metadata field
-      for (final entry in metadata.entries) {
-        await _setExifAttribute(exif, entry.key, entry.value);
-      }
-      
-      // Close the exif file
-      await exif.close();
-    } catch (e) {
-      print('Error modifying EXIF: $e');
-      await exif.close();
-      rethrow;
-    }
-  }
-
-  /// Set individual EXIF attribute
-  Future<void> _setExifAttribute(Exif exif, String key, String value) async {
-    try {
-      // Map common EXIF fields to native_exif attributes
-      switch (key) {
-        case 'GPSLatitude':
-          await exif.writeAttribute('GPSLatitude', value);
-          break;
-        case 'GPSLongitude':
-          await exif.writeAttribute('GPSLongitude', value);
-          break;
-        case 'GPSAltitude':
-          await exif.writeAttribute('GPSAltitude', value);
-          break;
-        case 'DateTimeOriginal':
-          await exif.writeAttribute('DateTimeOriginal', value);
-          break;
-        case 'CreateDate':
-          await exif.writeAttribute('CreateDate', value);
-          break;
-        case 'ModifyDate':
-          await exif.writeAttribute('DateTime', value);
-          break;
-        case 'Make':
-          await exif.writeAttribute('Make', value);
-          break;
-        case 'Model':
-          await exif.writeAttribute('Model', value);
-          break;
-        case 'LensModel':
-          await exif.writeAttribute('LensModel', value);
-          break;
-        case 'ISO':
-          await exif.writeAttribute('ISOSpeedRatings', value);
-          break;
-        case 'FNumber':
-          await exif.writeAttribute('FNumber', value);
-          break;
-        case 'ExposureTime':
-          await exif.writeAttribute('ExposureTime', value);
-          break;
-        case 'FocalLength':
-          await exif.writeAttribute('FocalLength', value);
-          break;
-        case 'Orientation':
-          await exif.writeAttribute('Orientation', value);
-          break;
-        case 'Software':
-          await exif.writeAttribute('Software', value);
-          break;
-        case 'Copyright':
-          await exif.writeAttribute('Copyright', value);
-          break;
-        case 'Artist':
-          await exif.writeAttribute('Artist', value);
-          break;
-        case 'ImageDescription':
-          await exif.writeAttribute('ImageDescription', value);
-          break;
-        default:
-          // Try to set it anyway
-          await exif.writeAttribute(key, value);
-      }
-    } catch (e) {
-      print('Warning: Could not set $key: $e');
-    }
-  }
-
   /// Save file to downloads folder
-  Future<bool> _saveToDownloads(File sourceFile, String originalFilename) async {
+  Future<bool> _saveToDownloads(
+    Uint8List imageBytes,
+    String originalFilename,
+    Map<String, String> metadata,
+  ) async {
     try {
       // Request storage permission
       if (Platform.isAndroid) {
         final status = await Permission.storage.request();
         if (!status.isGranted) {
-          print('Storage permission denied');
-          return false;
+          // Try manageExternalStorage for Android 11+
+          final manageStatus = await Permission.manageExternalStorage.request();
+          if (!manageStatus.isGranted) {
+            print('Storage permission denied');
+            return false;
+          }
         }
       }
 
@@ -176,17 +84,41 @@ class ExifModificationService {
       // Create filename with _edited suffix
       final nameWithoutExt = originalFilename.replaceAll(RegExp(r'\.[^.]+$'), '');
       final extension = originalFilename.split('.').last;
-      final newFilename = '${nameWithoutExt}_edited.$extension';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final newFilename = '${nameWithoutExt}_edited_$timestamp.$extension';
       
-      // Copy file to downloads
+      // Save image file
       final destinationPath = '${downloadsDir.path}/$newFilename';
-      await sourceFile.copy(destinationPath);
+      final file = File(destinationPath);
+      await file.writeAsBytes(imageBytes);
       
-      print('File saved to: $destinationPath');
+      // Save metadata info as JSON file
+      final metadataFilename = '${nameWithoutExt}_metadata_$timestamp.json';
+      final metadataPath = '${downloadsDir.path}/$metadataFilename';
+      final metadataFile = File(metadataPath);
+      await metadataFile.writeAsString(_formatMetadataAsJson(metadata));
+      
+      print('Image saved to: $destinationPath');
+      print('Metadata saved to: $metadataPath');
       return true;
     } catch (e) {
       print('Error saving to downloads: $e');
       return false;
     }
+  }
+
+  /// Format metadata as JSON string
+  String _formatMetadataAsJson(Map<String, String> metadata) {
+    final buffer = StringBuffer();
+    buffer.writeln('{');
+    final entries = metadata.entries.toList();
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      buffer.write('  "${entry.key}": "${entry.value}"');
+      if (i < entries.length - 1) buffer.write(',');
+      buffer.writeln();
+    }
+    buffer.writeln('}');
+    return buffer.toString();
   }
 }
