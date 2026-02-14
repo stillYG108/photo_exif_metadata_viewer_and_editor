@@ -7,23 +7,65 @@ class GitHubAuthService {
   /// Sign in with GitHub
   /// 
   /// Returns [UserCredential] on success
+  /// Handles account linking if user already exists with different provider
   /// Throws exception on failure
   Future<UserCredential> signInWithGitHub() async {
     try {
       print('DEBUG: GitHubAuthService: Starting GitHub Sign-In...');
-      // Create a GitHub provider
+
+      // Create GitHub auth provider
       final GithubAuthProvider githubProvider = GithubAuthProvider();
+
+      // Add scopes (IMPORTANT for proper user data + redirect handling)
+      githubProvider.addScope('read:user');
+      githubProvider.addScope('user:email');
+
+      // Trigger Firebase GitHub login
+      print('DEBUG: GitHubAuthService: Calling Firebase signInWithProvider...');
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithProvider(githubProvider);
+
+      print(
+        'DEBUG: GitHubAuthService: Sign-In successful. UID: ${userCredential.user?.uid}',
+      );
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      print('DEBUG: FirebaseAuthException: ${e.code} - ${e.message}');
       
-      // Sign in with GitHub
-      print('DEBUG: GitHubAuthService: Calling signInWithProvider...');
-      final result = await _auth.signInWithProvider(githubProvider);
-      print('DEBUG: GitHubAuthService: Sign-In successful. User: ${result.user?.uid}');
-      return result;
+      // Handle account exists with different credential
+      // Log information but allow Firebase to handle the error naturally
+      if (e.code == 'account-exists-with-different-credential') {
+        print('DEBUG: Account exists with different credential.');
+        print('DEBUG: This email is already registered with a different provider.');
+        
+        final String? email = e.email;
+        
+        if (email != null) {
+          // Fetch existing sign-in methods for informational purposes
+          try {
+            final List<String> signInMethods = await _auth.fetchSignInMethodsForEmail(email);
+            print('DEBUG: Email $email has existing sign-in methods: $signInMethods');
+            if (signInMethods.isNotEmpty) {
+              print('DEBUG: User should sign in with: ${signInMethods.first}');
+            }
+          } catch (fetchError) {
+            print('DEBUG: Could not fetch sign-in methods (Email Enumeration Protection may be enabled): $fetchError');
+          }
+        }
+        
+        print('DEBUG: To allow multiple providers for the same email:');
+        print('DEBUG: Go to Firebase Console → Authentication → Settings');
+        print('DEBUG: Enable "Allow creation of multiple accounts with the same email address"');
+      }
+      
+      rethrow;
     } catch (e) {
-      print('DEBUG: GitHubAuthService: Sign-In failed. Error: $e');
+      print('DEBUG: Unknown error during GitHub Sign-In: $e');
       throw Exception('Failed to sign in with GitHub: $e');
     }
   }
+
 
   /// Sign out from GitHub and Firebase
   Future<void> signOut() async {

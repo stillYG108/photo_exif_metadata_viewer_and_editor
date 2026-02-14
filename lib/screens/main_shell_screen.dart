@@ -7,7 +7,6 @@ import '../widgets/tactical_scaffold.dart';
 import '../widgets/corner_bracket_container.dart';
 import '../widgets/glitch_text.dart';
 
-import '../features/forensic_cases/presentation/screens/cases_list_screen.dart';
 import 'account_screen.dart';
 import 'services_screen.dart';
 import 'activity_screen.dart';
@@ -21,7 +20,7 @@ class MainShellScreen extends StatefulWidget {
 
 class _MainShellScreenState extends State<MainShellScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> _tabs = ["CASES", "ANALYSIS", "ACTIVITY", "PROFILE"];
+  final List<String> _tabs = ["ANALYSIS", "ACTIVITY", "PROFILE"];
   
   // Fake terminal logs
   final List<String> _logs = [
@@ -105,7 +104,6 @@ class _MainShellScreenState extends State<MainShellScreen> with SingleTickerProv
                         child: TabBarView(
                           controller: _tabController,
                           children: const [
-                            CasesListScreen(),
                             ServicesScreen(),
                             ActivityScreen(),
                             AccountScreen(),

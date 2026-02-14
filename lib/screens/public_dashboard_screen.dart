@@ -72,8 +72,6 @@ class PublicDashboardScreen extends StatelessWidget {
                   _buildRestrictedTile(context, "METADATA EDITOR", Icons.edit_note),
                   _buildRestrictedTile(context, "FORENSIC REPORT", Icons.article),
                   _buildRestrictedTile(context, "EVIDENCE EXPORT", Icons.drive_file_move),
-                  _buildRestrictedTile(context, "DEEP SCAN", Icons.radar),
-                  _buildRestrictedTile(context, "SYSTEM LOGS", Icons.terminal),
                 ],
               ),
             ),

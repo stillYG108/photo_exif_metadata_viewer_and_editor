@@ -8,8 +8,6 @@ import '../widgets/forensic_card.dart';
 import '../widgets/animated_text.dart';
 import '../services/google_auth_service.dart';
 import '../services/github_auth_service.dart';
-import '../services/sound_service.dart';
-import '../widgets/animated_app_logo.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -198,12 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Animated Logo
-                  const AnimatedAppLogo(size: 150),
-                  
-                  const SizedBox(height: 24),
-                  
-                  Text(
+                   Text(
                     "NEW_OPERATOR_REGISTRY",
                     style: GoogleFonts.orbitron(
                       fontSize: 24,
@@ -284,10 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           )
                         else
                           ElevatedButton(
-                            onPressed: () {
-                              SoundService().playClickSound();
-                              _handleRegister();
-                            },
+                            onPressed: _handleRegister,
                             child: const Text("REGISTER_PROFILE"),
                           ),
                         
@@ -322,10 +312,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           )
                         else
                           OutlinedButton.icon(
-                            onPressed: () {
-                              SoundService().playClickSound();
-                              _handleGoogleSignUp();
-                            },
+                            onPressed: _handleGoogleSignUp,
                             icon: Icon(Icons.g_mobiledata, size: 28, color: ForensicColors.neonGreen),
                             label: Text(
                               "Google",
@@ -352,10 +339,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           )
                         else
                           OutlinedButton.icon(
-                            onPressed: () {
-                              SoundService().playClickSound();
-                              _handleGitHubSignUp();
-                            },
+                            onPressed: _handleGitHubSignUp,
                             icon: Icon(Icons.code, size: 24, color: ForensicColors.textPrimary),
                             label: Text(
                               "GitHub",

@@ -6,6 +6,7 @@ import '../widgets/forensic_card.dart';
 import '../widgets/crt_effect_container.dart';
 import 'exif_analyzer_screen.dart';
 import 'forensic_report_screen.dart';
+import 'evidence_export_screen.dart';
 
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
@@ -104,6 +105,11 @@ class ServicesScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const ForensicReportScreen()),
+          );
+        } else if (title == "EVIDENCE_EXPORT") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EvidenceExportScreen()),
           );
         } else {
           // Show snackbar for other modules (not implemented yet)
