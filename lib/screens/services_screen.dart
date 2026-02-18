@@ -5,6 +5,7 @@ import '../core/theme/forensic_theme.dart';
 import '../widgets/forensic_card.dart';
 import '../widgets/crt_effect_container.dart';
 import 'exif_analyzer_screen.dart';
+import 'exif_editor_screen.dart';
 import 'forensic_report_screen.dart';
 import 'evidence_export_screen.dart';
 
@@ -47,7 +48,7 @@ class ServicesScreen extends StatelessWidget {
                     ),
                     _buildModuleTile(
                       context,
-                      "METADATA_EDITOR",
+                      "EXIF_EDITOR",
                       "MODIFIES_HEADERS",
                       Icons.edit_note,
                       true,
@@ -100,6 +101,11 @@ class ServicesScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const ExifAnalyzerScreen()),
+          );
+        } else if (title == "EXIF_EDITOR") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ExifEditorScreen()),
           );
         } else if (title == "FORENSIC_REPORT") {
           Navigator.push(

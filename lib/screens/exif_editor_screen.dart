@@ -37,7 +37,9 @@ class _ExifEditorScreenState extends State<ExifEditorScreen> {
     });
 
     try {
-      final reports = await _reportService.getAllExtractionRecords();
+      // Use stream and get first value
+      final reportsStream = _reportService.getUserExtractions();
+      final reports = await reportsStream.first;
       setState(() {
         _reports = reports;
         _isLoading = false;
@@ -53,8 +55,31 @@ class _ExifEditorScreenState extends State<ExifEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return TacticalScaffold(
-      title: 'EXIF_EDITOR',
-      subtitle: 'METADATA_MODIFICATION_SYSTEM',
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'EXIF_EDITOR',
+              style: TextStyle(
+                color: ForensicColors.greenPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Courier',
+              ),
+            ),
+            Text(
+              'METADATA_MODIFICATION_SYSTEM',
+              style: TextStyle(
+                color: ForensicColors.cyberCyan,
+                fontSize: 10,
+                fontFamily: 'Courier',
+              ),
+            ),
+          ],
+        ),
+      ),
       body: _buildBody(),
     );
   }

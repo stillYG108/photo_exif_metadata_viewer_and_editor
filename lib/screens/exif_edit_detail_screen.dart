@@ -29,28 +29,6 @@ class _ExifEditDetailScreenState extends State<ExifEditDetailScreen> {
   bool _isSaving = false;
   bool _hasChanges = false;
 
-  // Common EXIF fields to edit
-  final List<String> _editableFields = [
-    'GPSLatitude',
-    'GPSLongitude',
-    'GPSAltitude',
-    'DateTimeOriginal',
-    'CreateDate',
-    'ModifyDate',
-    'Make',
-    'Model',
-    'LensModel',
-    'ISO',
-    'FNumber',
-    'ExposureTime',
-    'FocalLength',
-    'Orientation',
-    'Software',
-    'Copyright',
-    'Artist',
-    'ImageDescription',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -58,15 +36,17 @@ class _ExifEditDetailScreenState extends State<ExifEditDetailScreen> {
   }
 
   void _initializeControllers() {
-    for (final field in _editableFields) {
-      final value = widget.record.originalMetadata[field]?.toString() ?? '';
-      _controllers[field] = TextEditingController(text: value);
-      _controllers[field]!.addListener(() {
-        if (!_hasChanges) {
-          setState(() => _hasChanges = true);
-        }
-      });
-    }
+    // Create controllers for ALL metadata fields dynamically
+    widget.record.originalMetadata.forEach((field, value) {
+      if (value != null) {
+        _controllers[field] = TextEditingController(text: value.toString());
+        _controllers[field]!.addListener(() {
+          if (!_hasChanges) {
+            setState(() => _hasChanges = true);
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -78,107 +58,113 @@ class _ExifEditDetailScreenState extends State<ExifEditDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return TacticalScaffold(
-      title: 'EXIF_EDITOR',
-      subtitle: 'METADATA_MODIFICATION',
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    return Stack(
-      children: [
-        Column(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Preview Header
-            _buildImageHeader(),
-            
-            // Editable Form
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildSection('GPS COORDINATES', _buildGPSFields()),
-                    const SizedBox(height: 20),
-                    _buildSection('DATE & TIME', _buildDateTimeFields()),
-                    const SizedBox(height: 20),
-                    _buildSection('CAMERA INFO', _buildCameraFields()),
-                    const SizedBox(height: 20),
-                    _buildSection('IMAGE SETTINGS', _buildImageSettingsFields()),
-                    const SizedBox(height: 20),
-                    _buildSection('OTHER METADATA', _buildOtherFields()),
-                    const SizedBox(height: 80), // Space for FAB
-                  ],
-                ),
+            Text(
+              'EXIF_EDITOR',
+              style: TextStyle(
+                color: ForensicColors.greenPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Courier',
+              ),
+            ),
+            Text(
+              'METADATA_MODIFICATION',
+              style: TextStyle(
+                color: ForensicColors.cyberCyan,
+                fontSize: 10,
+                fontFamily: 'Courier',
               ),
             ),
           ],
         ),
+      ),
+      body: _buildBody(),
+      bottomNavigationBar: _hasChanges ? _buildBottomSaveBar() : null,
+    );
+  }
+
+  Widget _buildBody() {
+    return Column(
+      children: [
+        // Image Preview Header
+        _buildImageHeader(),
         
-        // Floating Action Button
-        if (_hasChanges)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: _buildSaveButton(),
+        // Editable Form
+        Expanded(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                ..._buildAllFieldsSections(),
+                const SizedBox(height: 20), // Reduced padding
+              ],
+            ),
           ),
+        ),
       ],
     );
   }
 
-  Widget _buildSaveButton() {
-    return CornerBracketContainer(
-      color: ForensicColors.greenPrimary,
-      strokeWidth: 3,
-      child: Material(
+  Widget _buildBottomSaveBar() {
+    return Container(
+      decoration: BoxDecoration(
         color: Colors.black,
-        child: InkWell(
-          onTap: _isSaving ? null : _handleSaveAndDownload,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: _isSaving
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: ForensicColors.greenPrimary,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'PROCESSING...',
-                        style: TextStyle(
-                          color: ForensicColors.greenPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Courier',
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.save, color: ForensicColors.greenPrimary, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'SAVE & DOWNLOAD',
-                        style: TextStyle(
-                          color: ForensicColors.greenPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Courier',
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
+        border: Border(
+          top: BorderSide(color: ForensicColors.greenPrimary, width: 2),
         ),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: SafeArea(
+        child: _isSaving
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: ForensicColors.greenPrimary,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'PROCESSING...',
+                    style: TextStyle(
+                      color: ForensicColors.greenPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Courier',
+                    ),
+                  ),
+                ],
+              )
+            : ElevatedButton.icon(
+                onPressed: _handleSaveAndDownload,
+                icon: Icon(Icons.save, color: Colors.black),
+                label: Text(
+                  'SAVE & DOWNLOAD',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Courier',
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ForensicColors.greenPrimary,
+                  minimumSize: Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
       ),
     );
   }
@@ -200,21 +186,30 @@ class _ExifEditDetailScreenState extends State<ExifEditDetailScreen> {
         }
       });
 
+      print('=== EXIF EDITOR DEBUG ===');
+      print('Image URL: ${widget.record.imageUrl}');
+      print('Filename: ${widget.record.imageName}');
+      print('Modified fields: ${modifiedMetadata.length}');
+
       // Modify and download image
-      final success = await _modificationService.modifyAndDownloadImage(
+      final result = await _modificationService.modifyAndDownloadImage(
         imageUrl: widget.record.imageUrl,
         originalFilename: widget.record.imageName,
         modifiedMetadata: modifiedMetadata,
       );
 
-      if (success) {
-        _showSnackBar('Image saved successfully with modified EXIF data!');
+      if (result['success'] == true) {
+        final downloadFolder = result['downloadFolder'] ?? 'Downloads';
+        _showSnackBar('✓ Saved to: $downloadFolder\nCheck your Downloads folder!');
         setState(() => _hasChanges = false);
       } else {
-        _showSnackBar('Failed to save image', isError: true);
+        final error = result['error'] ?? 'Unknown error';
+        _showSnackBar('✗ Failed: $error', isError: true);
       }
-    } catch (e) {
-      _showSnackBar('Error: ${e.toString()}', isError: true);
+    } catch (e, stackTrace) {
+      print('ERROR in _handleSaveAndDownload: $e');
+      print('Stack trace: $stackTrace');
+      _showSnackBar('✗ Error: ${e.toString()}', isError: true);
     } finally {
       setState(() => _isSaving = false);
     }
@@ -329,68 +324,97 @@ class _ExifEditDetailScreenState extends State<ExifEditDetailScreen> {
     );
   }
 
-  List<Widget> _buildGPSFields() {
-    return [
-      _buildTextField('GPSLatitude', 'Latitude', 'e.g., 37.7749'),
-      const SizedBox(height: 12),
-      _buildTextField('GPSLongitude', 'Longitude', 'e.g., -122.4194'),
-      const SizedBox(height: 12),
-      _buildTextField('GPSAltitude', 'Altitude (m)', 'e.g., 100'),
-    ];
+  /// Build all fields organized by category
+  List<Widget> _buildAllFieldsSections() {
+    final sections = <Widget>[];
+    
+    // Categorize fields
+    final gpsFields = <String>[];
+    final dateFields = <String>[];
+    final cameraFields = <String>[];
+    final imageFields = <String>[];
+    final otherFields = <String>[];
+    
+    _controllers.keys.forEach((field) {
+      final fieldLower = field.toLowerCase();
+      if (fieldLower.contains('gps') || fieldLower.contains('latitude') || 
+          fieldLower.contains('longitude') || fieldLower.contains('altitude')) {
+        gpsFields.add(field);
+      } else if (fieldLower.contains('date') || fieldLower.contains('time')) {
+        dateFields.add(field);
+      } else if (fieldLower.contains('make') || fieldLower.contains('model') || 
+                 fieldLower.contains('lens') || fieldLower.contains('camera')) {
+        cameraFields.add(field);
+      } else if (fieldLower.contains('iso') || fieldLower.contains('fnumber') || 
+                 fieldLower.contains('exposure') || fieldLower.contains('focal') ||
+                 fieldLower.contains('aperture') || fieldLower.contains('shutter')) {
+        imageFields.add(field);
+      } else {
+        otherFields.add(field);
+      }
+    });
+    
+    // Build sections
+    if (gpsFields.isNotEmpty) {
+      sections.add(_buildSection('GPS COORDINATES', _buildFieldsList(gpsFields)));
+      sections.add(const SizedBox(height: 20));
+    }
+    
+    if (dateFields.isNotEmpty) {
+      sections.add(_buildSection('DATE & TIME', _buildFieldsList(dateFields)));
+      sections.add(const SizedBox(height: 20));
+    }
+    
+    if (cameraFields.isNotEmpty) {
+      sections.add(_buildSection('CAMERA INFO', _buildFieldsList(cameraFields)));
+      sections.add(const SizedBox(height: 20));
+    }
+    
+    if (imageFields.isNotEmpty) {
+      sections.add(_buildSection('IMAGE SETTINGS', _buildFieldsList(imageFields)));
+      sections.add(const SizedBox(height: 20));
+    }
+    
+    if (otherFields.isNotEmpty) {
+      sections.add(_buildSection('OTHER METADATA (${otherFields.length} fields)', _buildFieldsList(otherFields)));
+    }
+    
+    return sections;
   }
-
-  List<Widget> _buildDateTimeFields() {
-    return [
-      _buildTextField('DateTimeOriginal', 'Date/Time Original', 'YYYY:MM:DD HH:MM:SS'),
-      const SizedBox(height: 12),
-      _buildTextField('CreateDate', 'Create Date', 'YYYY:MM:DD HH:MM:SS'),
-      const SizedBox(height: 12),
-      _buildTextField('ModifyDate', 'Modify Date', 'YYYY:MM:DD HH:MM:SS'),
-    ];
+  
+  /// Build list of text fields for given field names
+  List<Widget> _buildFieldsList(List<String> fields) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < fields.length; i++) {
+      widgets.add(_buildTextField(fields[i], _formatFieldName(fields[i]), 'Enter value'));
+      if (i < fields.length - 1) {
+        widgets.add(const SizedBox(height: 12));
+      }
+    }
+    return widgets;
   }
-
-  List<Widget> _buildCameraFields() {
-    return [
-      _buildTextField('Make', 'Camera Make', 'e.g., Canon'),
-      const SizedBox(height: 12),
-      _buildTextField('Model', 'Camera Model', 'e.g., EOS 5D Mark IV'),
-      const SizedBox(height: 12),
-      _buildTextField('LensModel', 'Lens Model', 'e.g., EF 24-70mm f/2.8L'),
-    ];
-  }
-
-  List<Widget> _buildImageSettingsFields() {
-    return [
-      _buildTextField('ISO', 'ISO', 'e.g., 400'),
-      const SizedBox(height: 12),
-      _buildTextField('FNumber', 'Aperture (F-Number)', 'e.g., 2.8'),
-      const SizedBox(height: 12),
-      _buildTextField('ExposureTime', 'Shutter Speed', 'e.g., 1/125'),
-      const SizedBox(height: 12),
-      _buildTextField('FocalLength', 'Focal Length (mm)', 'e.g., 50'),
-    ];
-  }
-
-  List<Widget> _buildOtherFields() {
-    return [
-      _buildTextField('Orientation', 'Orientation', 'e.g., 1'),
-      const SizedBox(height: 12),
-      _buildTextField('Software', 'Software', 'e.g., Adobe Photoshop'),
-      const SizedBox(height: 12),
-      _buildTextField('Copyright', 'Copyright', 'e.g., © 2024 Photographer'),
-      const SizedBox(height: 12),
-      _buildTextField('Artist', 'Artist', 'e.g., John Doe'),
-      const SizedBox(height: 12),
-      _buildTextField('ImageDescription', 'Description', 'Image description'),
-    ];
+  
+  /// Format field name for display
+  String _formatFieldName(String field) {
+    // Convert camelCase or PascalCase to readable format
+    return field
+        .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}')
+        .trim()
+        .replaceAll('_', ' ')
+        .toUpperCase();
   }
 
   Widget _buildTextField(String field, String label, String hint) {
+    // Skip if controller doesn't exist
+    if (!_controllers.containsKey(field)) {
+      return const SizedBox.shrink();
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label.toUpperCase(),
+          label,
           style: TextStyle(
             color: ForensicColors.cyberCyan,
             fontSize: 11,
