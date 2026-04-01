@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:exif/exif.dart';
+import 'package:exif/exif.dart' hide ExifData;
 import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/exif_data.dart';
 
@@ -95,109 +95,94 @@ class ExifParsingDatasource {
     }
   }
   
-  /// Parse GPS coordinate from EXIF format
-  /// Handles multiple formats:
-  /// - [40, 42, 51.39] (degrees, minutes, seconds)
-  /// - [40/1, 42/1, 5139/100] (rational format)
-  /// - 40.7143 (decimal degrees)
+  /// Parse GPS coordinate from EXIF format.
+  ///
+  /// The `exif` package can return GPS values in several forms:
+  ///   1. Bracketed rational list : "[40/1, 42/1, 3051/100]"
+  ///   2. Bracketed integer list  : "[40, 42, 51]"
+  ///   3. Space-separated values  : "40/1 42/1 3051/100"
+  ///   4. Plain decimal           : "40.7143"
+  ///   5. Plain rational          : "40/1"
+  ///
+  /// Returns null when the coordinate cannot be parsed or is all-zero.
   double? _parseGPSCoordinate(String? coordinate, String? ref) {
-    if (coordinate == null) return null;
-    
-    // If ref is null, we can still try to parse but won't apply direction
-    // Default to N for latitude, E for longitude if missing
-    
+    if (coordinate == null || coordinate.trim().isEmpty) return null;
+
     try {
-      // Remove brackets and clean up
+      // ── Step 1: Strip brackets / parentheses and normalise delimiters ──
       String cleaned = coordinate
           .replaceAll('[', '')
           .replaceAll(']', '')
           .replaceAll('(', '')
           .replaceAll(')', '')
           .trim();
-      
-      // Check if it's already in decimal format (e.g., "40.7143")
+
+      // Replace spaces used as separators with commas so we have one code path
+      // e.g. "40/1 42/1 3051/100" → "40/1,42/1,3051/100"
+      // But keep spaces that are inside rational pairs intact → won't happen.
+      // Use regex: replace one-or-more spaces/commas with a single comma.
+      cleaned = cleaned.replaceAll(RegExp(r'[,\s]+'), ',');
+
+      // ── Step 2: Try single decimal (no comma) ──────────────────────────
       if (!cleaned.contains(',')) {
-        final decimal = double.tryParse(cleaned);
-        if (decimal != null) {
-          // Check if it's zero (invalid GPS)
-          if (decimal == 0.0) {
-            print('GPS coordinate is zero, skipping');
-            return null;
-          }
-          // Apply reference if available
-          if (ref != null && (ref == 'S' || ref == 'W')) {
-            return -decimal;
-          }
-          return decimal;
+        // Could be a rational like "40/1" or a decimal like "40.7143"
+        final value = _parseRationalOrDecimal(cleaned);
+        if (value == null) return null;
+        if (value == 0.0) {
+          print('GPS coordinate is zero (single value), treating as N/A');
+          return null;
         }
+        return (ref == 'S' || ref == 'W') ? -value : value;
       }
-      
-      // Split by comma
+
+      // ── Step 3: Split into DMS components ─────────────────────────────
       final parts = cleaned.split(',').map((s) => s.trim()).toList();
-      
+
+      // Must have 1–3 parts (degrees, optional minutes, optional seconds)
       if (parts.isEmpty || parts.length > 3) return null;
-      
-      // Parse each part (handle both decimal and rational formats)
-      double degrees = 0;
-      double minutes = 0;
-      double seconds = 0;
-      
-      // Parse degrees
-      if (parts.isNotEmpty) {
-        degrees = _parseRationalOrDecimal(parts[0]) ?? 0;
-      }
-      
-      // Parse minutes
-      if (parts.length > 1) {
-        minutes = _parseRationalOrDecimal(parts[1]) ?? 0;
-      }
-      
-      // Parse seconds
-      if (parts.length > 2) {
-        seconds = _parseRationalOrDecimal(parts[2]) ?? 0;
-      }
-      
-      // Check if all values are zero (invalid GPS data)
-      if (degrees == 0 && minutes == 0 && seconds == 0) {
-        print('GPS coordinate is all zeros, skipping');
+
+      final degrees = _parseRationalOrDecimal(parts[0]) ?? 0.0;
+      final minutes = parts.length > 1 ? (_parseRationalOrDecimal(parts[1]) ?? 0.0) : 0.0;
+      final seconds = parts.length > 2 ? (_parseRationalOrDecimal(parts[2]) ?? 0.0) : 0.0;
+
+      // All-zero means no GPS lock — treat as unavailable
+      if (degrees == 0.0 && minutes == 0.0 && seconds == 0.0) {
+        print('GPS DMS is all zeros — no GPS lock, treating as N/A');
         return null;
       }
-      
-      // Convert to decimal degrees
-      var decimal = degrees + (minutes / 60) + (seconds / 3600);
-      
-      // Apply reference (N/S for latitude, E/W for longitude) if available
-      if (ref != null && (ref == 'S' || ref == 'W')) {
-        decimal = -decimal;
-      }
-      
+
+      // ── Step 4: Convert DMS → decimal degrees ─────────────────────────
+      double decimal = degrees + (minutes / 60.0) + (seconds / 3600.0);
+
+      // Apply hemisphere reference
+      if (ref == 'S' || ref == 'W') decimal = -decimal;
+
+      print('GPS parsed: $degrees° $minutes\' $seconds" $ref → $decimal');
       return decimal;
     } catch (e) {
-      print('GPS parsing error: $e for coordinate: $coordinate');
+      print('GPS parsing error: $e for coordinate: "$coordinate"');
       return null;
     }
   }
-  
-  /// Parse rational (e.g., "40/1") or decimal (e.g., "40.5") number
+
+  /// Parse a rational string like "40/1" or a plain decimal like "40.5".
+  /// Returns null if value is empty, malformed, or has a zero denominator.
   double? _parseRationalOrDecimal(String value) {
-    if (value.isEmpty) return null;
-    
+    final v = value.trim();
+    if (v.isEmpty) return null;
+
     try {
-      // Check if it's a rational number (e.g., "40/1" or "5139/100")
-      if (value.contains('/')) {
-        final parts = value.split('/');
-        if (parts.length == 2) {
-          final numerator = double.parse(parts[0].trim());
-          final denominator = double.parse(parts[1].trim());
-          if (denominator != 0) {
-            return numerator / denominator;
-          }
+      if (v.contains('/')) {
+        final parts = v.split('/');
+        if (parts.length != 2) return null;
+        final numerator   = double.tryParse(parts[0].trim());
+        final denominator = double.tryParse(parts[1].trim());
+        if (numerator == null || denominator == null || denominator == 0) {
+          return null;
         }
-        return null;
+        return numerator / denominator;
       }
-      
-      // Otherwise, parse as decimal
-      return double.parse(value);
+      return double.tryParse(v);
     } catch (e) {
       return null;
     }
@@ -228,13 +213,18 @@ class ExifParsingDatasource {
     }
   }
   
-  /// Parse datetime from EXIF string
+  /// Parse datetime from EXIF string.
+  /// EXIF format: "2024:02:12 01:45:00"  (colons in date part).
   DateTime? _parseDateTime(String? value) {
-    if (value == null) return null;
+    if (value == null || value.trim().isEmpty) return null;
     try {
-      // Format: "2024:02:12 01:45:00"
-      final cleaned = value.replaceAll(':', '-', 0, 2);
-      return DateTime.parse(cleaned.replaceFirst(' ', 'T'));
+      // Replace first two colons (date separators) with dashes, then the space with T
+      // e.g. "2024:02:12 01:45:00" → "2024-02-12T01:45:00"
+      final parts = value.trim().split(' ');
+      if (parts.length < 2) return null;
+      final datePart = parts[0].replaceAll(':', '-');  // "2024-02-12"
+      final timePart = parts[1];                        // "01:45:00"
+      return DateTime.parse('${datePart}T$timePart');
     } catch (e) {
       return null;
     }

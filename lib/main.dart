@@ -10,6 +10,7 @@ import 'screens/main_shell_screen.dart';
 import 'screens/public_dashboard_screen.dart';
 import 'widgets/glitch_text.dart';
 import 'widgets/scanning_effect.dart';
+import 'services/notification_service.dart';
 
 /// Test Firestore connection
 Future<void> testFirestore() async {
@@ -27,6 +28,9 @@ void main() async {
   
   // Initialize Firebase
   await Firebase.initializeApp();
+  
+  // Initialize Notification Service (local + FCM)
+  await NotificationService().initialize();
   
   // Enable Firestore offline persistence
   FirebaseFirestore.instance.settings = const Settings(

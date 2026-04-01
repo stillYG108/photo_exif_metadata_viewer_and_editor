@@ -76,6 +76,11 @@ dependencies:
   shared_preferences: ^2.2.2
   uuid: ^4.3.3
   http: ^1.2.0
+
+  # Notifications
+  flutter_local_notifications: ^17.2.4
+  firebase_messaging: ^15.2.5
+  timezone: ^0.9.4
   
   # UI
   google_fonts: ^6.1.0
@@ -99,6 +104,9 @@ dev_dependencies:
   freezed: ^2.4.6
   json_serializable: ^6.7.1
 
+  # App Icon Generator
+  flutter_launcher_icons: ^0.13.1
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -111,12 +119,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
-  # assets:
-  #   - assets/logo.png
-  #   - assets/mixkit-sci-fi-click-900.wav
+  assets:
+    - assets/icon/app_icon.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
@@ -142,3 +146,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# ─── App Icon Configuration ───────────────────────────────────────────────────
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21  # android min sdk min:16, default 21
+  adaptive_icon_background: "#1A1A2E"  # dark navy background for adaptive icons
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
